@@ -130,12 +130,17 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.local/bin/protoc-gen-swift
-          key: protoc-gen-swift-1.37.0-${{ runner.os }}
+          # Bumping SWIFT_PROTOBUF_VERSION below requires updating this key.
+          key: protoc-gen-swift-1.30.0-${{ runner.os }}
 
       - name: Build protoc-gen-swift
         if: matrix.language == 'swift' && steps.swift-plugins-cache.outputs.cache-hit != 'true'
         env:
-          SWIFT_PROTOBUF_VERSION: "1.37.0"
+          # Pinned to the last release with swift-tools-version 5.10 so it
+          # compiles under the swift-actions/setup-swift@v2 Linux toolchain.
+          # Newer swift-protobuf (1.37+) requires Swift 6.2, not yet
+          # available via setup-swift@v2 on Linux runners.
+          SWIFT_PROTOBUF_VERSION: "1.30.0"
         run: |
           mkdir -p "$HOME/.local/bin"
           tmp="$(mktemp -d)"
