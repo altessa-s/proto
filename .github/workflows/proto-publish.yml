@@ -101,6 +101,12 @@ jobs:
           go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.4
           go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1
 
+      - name: Install protoc (needed by buf's protoc_builtin plugins)
+        if: matrix.language == 'java' || matrix.language == 'php-rr'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends protobuf-compiler
+
       - name: Install protoc-gen-grpc-java
         if: matrix.language == 'java'
         env:
