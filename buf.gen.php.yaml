@@ -1,0 +1,6 @@
+version: v2
+plugins:
+  - protoc_builtin: php
+    out: gen/php
+  - local: grpc_php_plugin
+    out: gen/php

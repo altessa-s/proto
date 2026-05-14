@@ -1,0 +1,40 @@
+name: Proto Check
+
+# Runs buf lint and buf breaking on every PR touching schema files.
+# Used as a required status check before merging.
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "**/*.proto"
+      - "buf.yaml"
+      - "buf.lock"
+      - "buf.gen.*.yaml"
+      - ".github/workflows/proto-check.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-breaking:
+    name: Lint + Breaking-change check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: bufbuild/buf-setup-action@v1
+        with:
+          version: 1.69.0
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: buf lint
+        run: buf lint
+
+      - name: buf breaking against base branch
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          buf breaking --against ".git#branch=${BASE_REF}"

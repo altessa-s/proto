@@ -1,0 +1,11 @@
+version: v2
+plugins:
+  # Message types only. The grpc-swift service-stub plugin
+  # (protoc-gen-grpc-swift) is intentionally NOT wired here while the
+  # Swift gRPC ecosystem transitions from v1 to v2 (see
+  # https://github.com/grpc/grpc-swift-2 and grpc-swift-protobuf).
+  - local: protoc-gen-swift
+    out: gen/swift
+    opt:
+      - Visibility=Public
+      - FileNaming=FullPath

@@ -1,0 +1,238 @@
+name: Proto Publish
+
+# Generates public proto bindings (Go / Java / Swift / TypeScript / PHP /
+# PHP-RR) and mirrors them to per-language repositories on every main /
+# develop push and every vX.Y.Z tag. Source of truth: the .proto files
+# in this repository.
+#
+# Target repos (must be pre-created and the GitHub App installed on each):
+#   - altessa-s/proto-gen-go
+#   - altessa-s/proto-gen-java
+#   - altessa-s/proto-gen-swift
+#   - altessa-s/proto-gen-typescript
+#   - altessa-s/proto-gen-php (classic gRPC)
+#   - altessa-s/proto-gen-php-rr (RoadRunner gRPC)
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "**/*.proto"
+      - "buf.yaml"
+      - "buf.lock"
+      - "buf.gen.*.yaml"
+      - ".github/workflows/proto-publish.yml"
+      - ".github/scripts/sync-proto.sh"
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      languages:
+        description: "Comma-separated languages to publish (go,java,swift,typescript,php,php-rr)"
+        default: "go,java,swift,typescript,php,php-rr"
+        type: string
+
+permissions:
+  contents: read
+
+# Single source of truth for which .proto packages are part of the public
+# schema. Used both as `--path` filters to `buf generate` and to copy the
+# .proto sources into `proto-gen-php-rr` (RoadRunner needs them at runtime).
+env:
+  PUBLIC_PROTO_PATHS: "badrequest/v1 serviceinfo/v1"
+
+jobs:
+  publish:
+    name: Publish ${{ matrix.language }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [go, java, swift, typescript, php, php-rr]
+    concurrency:
+      group: proto-publish-${{ matrix.language }}-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - name: Skip if not selected (manual dispatch)
+        id: gate
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if [[ ",${{ inputs.languages }}," == *",${{ matrix.language }},"* ]]; then
+            echo "selected=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "selected=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Stop here if filtered out
+        if: github.event_name == 'workflow_dispatch' && steps.gate.outputs.selected != 'true'
+        run: |
+          echo "language=${{ matrix.language }} not selected by dispatch input"
+          exit 0
+
+      - name: Checkout proto repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Mint GitHub App token for target repo
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.PROTO_BOT_APP_ID }}
+          private-key: ${{ secrets.PROTO_BOT_PRIVATE_KEY }}
+          owner: altessa-s
+          repositories: proto-gen-${{ matrix.language }}
+
+      - name: Setup buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          version: 1.69.0
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Go
+        if: matrix.language == 'go'
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - name: Install Go proto plugins
+        if: matrix.language == 'go'
+        run: |
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.4
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1
+
+      - name: Install protoc-gen-grpc-java
+        if: matrix.language == 'java'
+        env:
+          GRPC_JAVA_VERSION: "1.68.1"
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL -o "$HOME/.local/bin/protoc-gen-grpc-java" \
+            "https://repo.maven.apache.org/maven2/io/grpc/protoc-gen-grpc-java/${GRPC_JAVA_VERSION}/protoc-gen-grpc-java-${GRPC_JAVA_VERSION}-linux-x86_64.exe"
+          chmod +x "$HOME/.local/bin/protoc-gen-grpc-java"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Setup Swift
+        if: matrix.language == 'swift'
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: "5.10"
+
+      - name: Cache protoc-gen-swift
+        if: matrix.language == 'swift'
+        id: swift-plugins-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/bin/protoc-gen-swift
+          key: protoc-gen-swift-1.37.0-${{ runner.os }}
+
+      - name: Build protoc-gen-swift
+        if: matrix.language == 'swift' && steps.swift-plugins-cache.outputs.cache-hit != 'true'
+        env:
+          SWIFT_PROTOBUF_VERSION: "1.37.0"
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          tmp="$(mktemp -d)"
+          git clone --depth 1 --branch "${SWIFT_PROTOBUF_VERSION}" \
+            https://github.com/apple/swift-protobuf.git "${tmp}/swift-protobuf"
+          (cd "${tmp}/swift-protobuf" && swift build -c release --product protoc-gen-swift)
+          cp "${tmp}/swift-protobuf/.build/release/protoc-gen-swift" "$HOME/.local/bin/"
+          rm -rf "${tmp}"
+
+      - name: Add Swift plugins to PATH
+        if: matrix.language == 'swift'
+        run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Setup Node.js
+        if: matrix.language == 'typescript'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install TypeScript codegen plugin
+        if: matrix.language == 'typescript'
+        run: npm install -g @bufbuild/protoc-gen-es@2
+
+      - name: Install grpc_php_plugin (classic PHP)
+        if: matrix.language == 'php'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends protobuf-compiler-grpc
+
+      - name: Install protoc-gen-php-grpc (RoadRunner)
+        if: matrix.language == 'php-rr'
+        env:
+          PHP_GRPC_VERSION: "1.6.0"
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          tmp="$(mktemp -d)"
+          curl -fsSL -o "${tmp}/plugin.tar.gz" \
+            "https://github.com/spiral-modules/php-grpc/releases/download/v${PHP_GRPC_VERSION}/protoc-gen-php-grpc-${PHP_GRPC_VERSION}-linux-amd64.tar.gz"
+          tar -xzf "${tmp}/plugin.tar.gz" -C "${tmp}"
+          install -m 0755 "${tmp}"/protoc-gen-php-grpc*/protoc-gen-php-grpc "$HOME/.local/bin/protoc-gen-php-grpc"
+          rm -rf "${tmp}"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Generate ${{ matrix.language }} bindings
+        run: buf generate --template buf.gen.${{ matrix.language }}.yaml
+
+      - name: Checkout target repo
+        uses: actions/checkout@v4
+        with:
+          repository: altessa-s/proto-gen-${{ matrix.language }}
+          token: ${{ steps.app-token.outputs.token }}
+          path: target
+          fetch-depth: 0
+          ref: main
+
+      - name: Sync, commit, push
+        env:
+          LANGUAGE: ${{ matrix.language }}
+          TARGET_DIR: target
+          SOURCE_SHA: ${{ github.sha }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          BOT_NAME: altessa-proto-bot
+          BOT_EMAIL: 196696431+altessa-proto-bot[bot]@users.noreply.github.com
+        run: .github/scripts/sync-proto.sh
+
+      - name: Run go mod tidy in target repo
+        if: matrix.language == 'go'
+        working-directory: target
+        run: |
+          if [[ -f go.mod ]]; then
+            go mod tidy
+            if [[ -n "$(git status --porcelain)" ]]; then
+              git config user.name altessa-proto-bot
+              git config user.email "196696431+altessa-proto-bot[bot]@users.noreply.github.com"
+              git add go.mod go.sum
+              git commit -m "chore: go mod tidy"
+              git push origin HEAD:main
+            fi
+          fi
+
+      - name: Trigger JAR publish in proto-gen-java
+        if: matrix.language == 'java' && github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh api \
+            --method POST \
+            "/repos/altessa-s/proto-gen-java/dispatches" \
+            -f event_type=publish-jar \
+            -F client_payload[version]="${TAG}" \
+            -F client_payload[source_sha]="${{ github.sha }}"
+
+      - name: Trigger npm publish in proto-gen-typescript
+        if: matrix.language == 'typescript' && (github.ref_type == 'tag' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          version=$(node -p "require('./target/package.json').version")
+          gh api \
+            --method POST \
+            "/repos/altessa-s/proto-gen-typescript/dispatches" \
+            -f event_type=publish-npm \
+            -F client_payload[version]="${version}" \
+            -F client_payload[source_sha]="${{ github.sha }}"
