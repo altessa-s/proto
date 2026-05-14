@@ -2,7 +2,7 @@
 // Use of this source code is governed by license that can be found in
 // the LICENSE file.
 
-syntax = "proto2";
+syntax = "proto3";
 package io.altessa.badrequest.v1;
 
 option java_package = "io.altessa.badrequest.v1";
@@ -10,7 +10,32 @@ option java_multiple_files = true;
 
 option go_package = "github.com/altessa-s/proto-gen-go/badrequest/v1;badrequestv1";
 
-import "google/protobuf/descriptor.proto";
+// FieldType mirrors google.protobuf.FieldDescriptorProto.Type as an open
+// proto3 enum so this schema is usable from PHP and other generators
+// that disallow proto2 closed-enum dependencies in proto3 files. Numeric
+// values intentionally match the upstream FieldDescriptorProto.Type so
+// tools can cast or round-trip without a lookup table.
+enum FieldType {
+  FIELD_TYPE_UNSPECIFIED = 0;
+  FIELD_TYPE_DOUBLE = 1;
+  FIELD_TYPE_FLOAT = 2;
+  FIELD_TYPE_INT64 = 3;
+  FIELD_TYPE_UINT64 = 4;
+  FIELD_TYPE_INT32 = 5;
+  FIELD_TYPE_FIXED64 = 6;
+  FIELD_TYPE_FIXED32 = 7;
+  FIELD_TYPE_BOOL = 8;
+  FIELD_TYPE_STRING = 9;
+  FIELD_TYPE_GROUP = 10;
+  FIELD_TYPE_MESSAGE = 11;
+  FIELD_TYPE_BYTES = 12;
+  FIELD_TYPE_UINT32 = 13;
+  FIELD_TYPE_ENUM = 14;
+  FIELD_TYPE_SFIXED32 = 15;
+  FIELD_TYPE_SFIXED64 = 16;
+  FIELD_TYPE_SINT32 = 17;
+  FIELD_TYPE_SINT64 = 18;
+}
 
 // Defines a general error structure for requests that are malformed or contain invalid data.
 // It typically includes a list of specific field violations that caused the request to be rejected.
@@ -28,16 +53,12 @@ message FieldViolation {
   optional string field_path = 1;
 
   // Human-readable message describing the violation.
-  // This should be specific to the field and the error condition.
   optional string message = 2;
 
   // Application-specific error code or identifier for this type of violation.
-  // This can be used by clients for programmatic error handling.
   optional string code = 3;
 
   // Structured representation of the path to the field that caused the violation.
-  // This provides more detailed information than `field_path` and can be used for
-  // more precise error handling or display.
   repeated FieldPathComponent field_path_components = 4;
 }
 
@@ -51,13 +72,13 @@ message FieldPathComponent {
   optional string name = 2;
 
   // Data type of the field.
-  optional google.protobuf.FieldDescriptorProto.Type type = 3;
+  optional FieldType type = 3;
 
   // For map fields, specifies the data type of the map keys.
-  optional google.protobuf.FieldDescriptorProto.Type map_key_type = 4;
+  optional FieldType map_key_type = 4;
 
   // For map fields, specifies the data type of the map values.
-  optional google.protobuf.FieldDescriptorProto.Type map_value_type = 5;
+  optional FieldType map_value_type = 5;
 
   // Indicates whether the field is a repeated field (i.e., an array or list).
   optional bool is_repeated = 6;
@@ -66,7 +87,6 @@ message FieldPathComponent {
   optional uint64 repeated_index = 7;
 
   // If the field is a map, this `oneof` specifies the key of the map entry that caused the violation.
-  // Only one of the `key` fields will be set, corresponding to the actual type of the map key.
   oneof map_key {
     // The index if the map key is treated as an array index (less common for proto maps).
     uint64 index = 8;
