@@ -66,8 +66,7 @@ message ServiceInfo {
   // Keys and values are strings. Maximum 100 entries allowed.
   map<string, string> metadata = 11;
 
-  // Version of the Protobuf package or definitions that this service was compiled against.
-  optional string proto_version = 12;
+  reserved 12;
 
   // Identifier of the current leader instance if this node is not the leader.
   // This is useful for clients to discover the active leader.
