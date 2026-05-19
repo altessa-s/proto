@@ -175,14 +175,14 @@ jobs:
       - name: Install protoc-gen-php-grpc (RoadRunner)
         if: matrix.language == 'php-rr'
         env:
-          PHP_GRPC_VERSION: "1.6.0"
+          RR_VERSION: "2025.1.14"
         run: |
           mkdir -p "$HOME/.local/bin"
           tmp="$(mktemp -d)"
           curl -fsSL -o "${tmp}/plugin.tar.gz" \
-            "https://github.com/spiral-modules/php-grpc/releases/download/v${PHP_GRPC_VERSION}/protoc-gen-php-grpc-${PHP_GRPC_VERSION}-linux-amd64.tar.gz"
+            "https://github.com/roadrunner-server/roadrunner/releases/download/v${RR_VERSION}/protoc-gen-php-grpc-${RR_VERSION}-linux-amd64.tar.gz"
           tar -xzf "${tmp}/plugin.tar.gz" -C "${tmp}"
-          install -m 0755 "${tmp}"/protoc-gen-php-grpc*/protoc-gen-php-grpc "$HOME/.local/bin/protoc-gen-php-grpc"
+          install -m 0755 "${tmp}/protoc-gen-php-grpc-${RR_VERSION}-linux-amd64/protoc-gen-php-grpc" "$HOME/.local/bin/protoc-gen-php-grpc"
           rm -rf "${tmp}"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
