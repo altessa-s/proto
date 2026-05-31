@@ -290,22 +290,47 @@ period := &typev1.DatePeriod{
 
 ## Generated bindings
 
-CI publishes generated bindings to dedicated per-language repositories,
-populated automatically on every push to `main` / `develop` and every
-`vX.Y.Z` tag.
+Two parallel consumption channels are kept in sync: per-language
+GitHub repositories (existing) and BSR-managed packages (new).
 
-| Language | Repository | Module / coordinates |
+### Source of truth on BSR
+
+The schema is published to
+[`buf.build/altessa-s/proto`](https://buf.build/altessa-s/proto) on
+every push to `main` / `develop` and every `vX.Y.Z` tag. Labels follow
+the source: branch pushes get a label matching the branch name; tag
+pushes get the tag label plus the rolling `main` label so consumers
+tracking `:main` follow released versions automatically.
+
+### Per-language packages
+
+For each language CI publishes to a dedicated GitHub repository
+(existing, brand-aligned) and for Go / TypeScript / Java BSR
+additionally serves a generated SDK directly from the registry. Pick
+whichever channel matches your consumer ecosystem.
+
+| Language | GitHub-hosted package | BSR-generated SDK |
 |---|---|---|
-| Go | [`altessa-s/proto-gen-go`](https://github.com/altessa-s/proto-gen-go) | `github.com/altessa-s/proto-gen-go` |
-| Java | [`altessa-s/proto-gen-java`](https://github.com/altessa-s/proto-gen-java) | Maven artifact in GitHub Packages |
-| Swift | [`altessa-s/proto-gen-swift`](https://github.com/altessa-s/proto-gen-swift) | SwiftPM package (messages only — see repo README) |
-| TypeScript | [`altessa-s/proto-gen-typescript`](https://github.com/altessa-s/proto-gen-typescript) | npm `@altessa-s/proto-gen-typescript` in GitHub Packages |
-| PHP (classic) | [`altessa-s/proto-gen-php`](https://github.com/altessa-s/proto-gen-php) | Composer (VCS); uses PECL `grpc` extension |
-| PHP (RoadRunner) | [`altessa-s/proto-gen-php-rr`](https://github.com/altessa-s/proto-gen-php-rr) | Composer (VCS); uses `spiral/roadrunner-grpc` |
+| Go | [`altessa-s/proto-gen-go`](https://github.com/altessa-s/proto-gen-go) — `github.com/altessa-s/proto-gen-go` | `buf.build/gen/go/altessa-s/proto/protocolbuffers/go` (+ `.../grpc/go`) |
+| TypeScript | [`altessa-s/proto-gen-typescript`](https://github.com/altessa-s/proto-gen-typescript) — npm `@altessa-s/proto-gen-typescript` in GitHub Packages | npm `@buf/altessa-s_proto.bufbuild_es` |
+| Java | [`altessa-s/proto-gen-java`](https://github.com/altessa-s/proto-gen-java) — Maven in GitHub Packages | Maven `build.buf.gen:altessa-s_proto_protocolbuffers_java` |
+| Swift | [`altessa-s/proto-gen-swift`](https://github.com/altessa-s/proto-gen-swift) — SwiftPM (messages only — see repo README) | — (no SwiftPM distribution from BSR) |
+| PHP (classic) | [`altessa-s/proto-gen-php`](https://github.com/altessa-s/proto-gen-php) — Composer (VCS); uses PECL `grpc` extension | — |
+| PHP (RoadRunner) | [`altessa-s/proto-gen-php-rr`](https://github.com/altessa-s/proto-gen-php-rr) — Composer (VCS); uses `spiral/roadrunner-grpc` | — |
 
-**Versioning.** Tag `vX.Y.Z` on `main` produces a SemVer release in every
-language repo. Pushes to `main` and `develop` publish branch snapshots
-under matching branches in each language repo.
+**Versioning.** Tag `vX.Y.Z` on `main` produces a SemVer release in
+every per-language repo and is also pushed to BSR as a fixed label.
+Pushes to `main` and `develop` publish branch snapshots in each
+per-language repo (`main` is fast-forward; `develop` is force-pushed
+from "main + freshly generated content" on each sync) and as floating
+labels on BSR.
+
+**Hand-edited files in target repos must live on `main`.** Because
+`develop` is rebuilt on every sync from `main + sync output`, any
+manual commit made only on a target repo's `develop` (README,
+`src/index.ts`, `composer.json`, etc.) is silently lost on the next
+bot run. Land such edits on `main` first; the next sync brings them
+forward to `develop` automatically.
 
 ## Build & lint
 

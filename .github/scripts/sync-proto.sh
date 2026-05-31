@@ -122,6 +122,15 @@ git config user.name "${BOT_NAME}"
 git config user.email "${BOT_EMAIL}"
 git add -A
 
+# Branch pushes from the schema repo mirror to the same-named branch in
+# the target. Tag pushes land on main. main is fast-forward; other
+# branches (currently only develop) are force-pushed because the bot
+# rebuilds them from (main + freshly generated content) on each sync.
+#
+# IMPORTANT: any hand-edited file in a target repo (README, src/index.ts,
+# composer.json, etc.) MUST live on `main` — develop is force-pushed
+# from `actions/checkout main` + sync output, so manual commits made
+# only on develop are silently lost on the next bot run.
 target_branch="main"
 if [[ "${REF_TYPE}" == "branch" ]]; then
   target_branch="${REF_NAME}"

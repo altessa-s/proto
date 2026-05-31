@@ -1,6 +1,7 @@
 version: v2
 modules:
   - path: .
+    name: buf.build/altessa-s/proto
 deps:
   # Google common types (google/type/*, google/api/field_behavior, …).
   # Required by schemas under type/v1/ that reuse google.type.Date,

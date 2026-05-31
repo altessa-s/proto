@@ -33,19 +33,26 @@ jobs:
         with:
           version: 1.69.0
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          buf_user: ${{ secrets.BUF_USER }}
+          buf_token: ${{ secrets.BUF_TOKEN }}
 
       - name: Resolve buf dependencies
         # Pulls buf.build/googleapis/googleapis (required for
         # google/api/field_behavior.proto and google/type/*.proto). No
         # buf.lock is committed, so this must run before any buf command
-        # that resolves imports. googleapis is public — no BSR auth needed.
+        # that resolves imports.
         run: buf dep update
 
       - name: buf lint
         run: buf lint
 
-      - name: buf breaking against base branch
+      - name: buf breaking against BSR
+        # Compares the PR head against the latest published label on BSR
+        # rather than the PR base branch, so breaking changes are caught
+        # against what consumers actually depend on. The label used
+        # mirrors the base branch: PRs into main check against the `main`
+        # label, PRs into develop check against `develop`.
         env:
           BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: |
-          buf breaking --against ".git#branch=${BASE_REF}"
+          buf breaking --against "buf.build/altessa-s/proto:${BASE_REF}"
