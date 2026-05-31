@@ -314,9 +314,47 @@ whichever channel matches your consumer ecosystem.
 | Go | [`altessa-s/proto-gen-go`](https://github.com/altessa-s/proto-gen-go) — `github.com/altessa-s/proto-gen-go` | `buf.build/gen/go/altessa-s/proto/protocolbuffers/go` (+ `.../grpc/go`) |
 | TypeScript | [`altessa-s/proto-gen-typescript`](https://github.com/altessa-s/proto-gen-typescript) — npm `@altessa-s/proto-gen-typescript` in GitHub Packages | npm `@buf/altessa-s_proto.bufbuild_es` |
 | Java | [`altessa-s/proto-gen-java`](https://github.com/altessa-s/proto-gen-java) — Maven in GitHub Packages | Maven `build.buf.gen:altessa-s_proto_protocolbuffers_java` |
-| Swift | [`altessa-s/proto-gen-swift`](https://github.com/altessa-s/proto-gen-swift) — SwiftPM (messages only — see repo README) | — (no SwiftPM distribution from BSR) |
-| PHP (classic) | [`altessa-s/proto-gen-php`](https://github.com/altessa-s/proto-gen-php) — Composer (VCS); uses PECL `grpc` extension | — |
-| PHP (RoadRunner) | [`altessa-s/proto-gen-php-rr`](https://github.com/altessa-s/proto-gen-php-rr) — Composer (VCS); uses `spiral/roadrunner-grpc` | — |
+| Swift | [`altessa-s/proto-gen-swift`](https://github.com/altessa-s/proto-gen-swift) — SwiftPM (messages only — see repo README) | SwiftPM via Swift Package Registry: `buf.altessa-s_proto_apple_swift` (see Swift SwiftPM setup below) |
+| PHP (classic) | [`altessa-s/proto-gen-php`](https://github.com/altessa-s/proto-gen-php) — Composer (VCS); uses PECL `grpc` extension | — (BSR has no Composer-managed PHP distribution) |
+| PHP (RoadRunner) | [`altessa-s/proto-gen-php-rr`](https://github.com/altessa-s/proto-gen-php-rr) — Composer (VCS); uses `spiral/roadrunner-grpc` | — (BSR has no Composer-managed PHP distribution) |
+
+#### Swift SwiftPM setup
+
+Configure SwiftPM to resolve packages from BSR's Swift Package Registry
+(one-time per developer machine / CI image):
+
+```
+swift package-registry set https://buf.build/gen/swift --scope=buf
+```
+
+Then in `Package.swift`:
+
+```swift
+.package(id: "buf.altessa-s_proto_apple_swift", from: "<version>")
+```
+
+#### PHP / PHP-RR fallback via BSR archive
+
+BSR has no Composer-registry for PHP. As a fallback, the generated
+output is downloadable as a versioned zip archive — useful when you
+want to bypass `proto-gen-php` / `proto-gen-php-rr` and pull straight
+from BSR (e.g. CI jobs that don't want a GitHub auth token):
+
+```
+# classic gRPC PHP
+curl -fsSL -O https://buf.build/gen/archive/altessa-s/proto/community/protocolbuffers-php/<VERSION>.zip
+
+# RoadRunner gRPC PHP
+curl -fsSL -O https://buf.build/gen/archive/altessa-s/proto/community/roadrunner-server-php-grpc/<VERSION>.zip
+```
+
+`<VERSION>` follows the pattern `<plugin-version>-<schema-commit-prefix>.<revision>`, e.g.
+`v5.3.0-a0178d2705f1.1` for the `roadrunner-server-php-grpc` plugin
+against the develop label snapshot `a0178d27...`. Browse the available
+versions on the module's [SDK page](https://buf.build/altessa-s/proto/sdks).
+For day-to-day Composer use prefer `altessa-s/proto-gen-php` /
+`altessa-s/proto-gen-php-rr` — the archive route requires manual
+unpacking and a hand-written `psr-4` autoload entry per consumer.
 
 **Versioning.** Tag `vX.Y.Z` on `main` produces a SemVer release in
 every per-language repo and is also pushed to BSR as a fixed label.
