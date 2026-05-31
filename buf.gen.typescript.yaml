@@ -2,6 +2,15 @@ version: v2
 plugins:
   - local: protoc-gen-es
     out: gen/typescript
+    # Emit TS for transitively imported modules too (notably
+    # buf.build/googleapis/googleapis): `google.api.field_behavior`,
+    # `google.type.{Color,Date,Money,PhoneNumber}`. Unlike Go (which
+    # uses the published google.golang.org/genproto bindings) and
+    # Java (which uses the proto-google-common-protos artifact), the
+    # protoc-gen-es ecosystem has no npm package shipping these
+    # types — they must be generated into this module so generated
+    # files can resolve their relative imports.
+    include_imports: true
     opt:
       - target=ts
       - import_extension=js

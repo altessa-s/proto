@@ -56,6 +56,11 @@ case "${LANGUAGE}" in
            "${TARGET_DIR}/badrequest" "${TARGET_DIR}/serviceinfo"
     cp -R "${SRC}/services" "${TARGET_DIR}/services"
     cp -R "${SRC}/type" "${TARGET_DIR}/type"
+    # Refresh go.mod / go.sum so the published module compiles.
+    # field_behavior annotations and google.type.* messages pull in
+    # google.golang.org/genproto/googleapis/{api,type/...} which must be
+    # recorded in go.mod for downstream consumers.
+    (cd "${TARGET_DIR}" && go mod tidy)
     ;;
   java)
     SRC="gen/java"

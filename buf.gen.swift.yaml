@@ -6,6 +6,11 @@ plugins:
   # https://github.com/grpc/grpc-swift-2 and grpc-swift-protobuf).
   - local: protoc-gen-swift
     out: gen/swift
+    # Emit Swift for transitively imported modules too — see the same
+    # comment in buf.gen.typescript.yaml. swift-protobuf bundles
+    # google.protobuf.* well-knowns but not google.type.{Color,Date,
+    # Money,PhoneNumber} or google.api.field_behavior options.
+    include_imports: true
     opt:
       - Visibility=Public
       - FileNaming=FullPath
