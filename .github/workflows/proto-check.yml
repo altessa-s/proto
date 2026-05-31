@@ -34,6 +34,13 @@ jobs:
           version: 1.69.0
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Resolve buf dependencies
+        # Pulls buf.build/googleapis/googleapis (required for
+        # google/api/field_behavior.proto and google/type/*.proto). No
+        # buf.lock is committed, so this must run before any buf command
+        # that resolves imports. googleapis is public — no BSR auth needed.
+        run: buf dep update
+
       - name: buf lint
         run: buf lint
 
