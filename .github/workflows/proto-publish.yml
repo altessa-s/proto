@@ -62,7 +62,7 @@ jobs:
           version: 1.69.0
           github_token: ${{ secrets.GITHUB_TOKEN }}
           buf_user: ${{ secrets.BUF_USER }}
-          buf_token: ${{ secrets.BUF_TOKEN }}
+          buf_api_token: ${{ secrets.BUF_TOKEN }}
 
       - name: Resolve buf dependencies
         run: buf dep update
