@@ -1,0 +1,30 @@
+// Copyright 2026 Altessa Solutions Inc. All rights reserved.
+// Use of this source code is governed by license that can be found in
+// the LICENSE file.
+
+syntax = "proto3";
+package io.altessa.type.v1;
+
+option java_package = "io.altessa.type.v1";
+option java_multiple_files = true;
+
+option go_package = "github.com/altessa-s/proto-gen-go/type/v1;typev1";
+
+import "google/api/field_behavior.proto";
+import "type/v1/file_ref.proto";
+
+// A user-facing document: a FileRef plus presentation metadata. Use this
+// when displaying attached documents in UIs ("Contract.pdf — signed copy");
+// use FileRef directly when only the underlying file is needed.
+message DocumentRef {
+  // Underlying file.
+  FileRef file = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // Display title, e.g. "Service agreement — 2026 edition". Not required
+  // to match `file.metadata.filename`.
+  string title = 2 [(google.api.field_behavior) = REQUIRED];
+
+  // Longer-form description shown alongside the title (purpose, version
+  // notes, …).
+  optional string description = 3;
+}

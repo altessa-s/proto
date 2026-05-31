@@ -39,7 +39,7 @@ permissions:
 # schema. Used both as `--path` filters to `buf generate` and to copy the
 # .proto sources into `proto-gen-php-rr` (RoadRunner needs them at runtime).
 env:
-  PUBLIC_PROTO_PATHS: "badrequest/v1 serviceinfo/v1"
+  PUBLIC_PROTO_PATHS: "services/badrequest/v1 services/serviceinfo/v1 type/v1"
   # Opt into Node.js 24 for JS-based actions (default starting 2026-06-02).
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 

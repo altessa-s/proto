@@ -1,0 +1,101 @@
+// Copyright 2026 Altessa Solutions Inc. All rights reserved.
+// Use of this source code is governed by license that can be found in
+// the LICENSE file.
+
+syntax = "proto3";
+package io.altessa.serviceinfo.v1;
+
+option java_package = "io.altessa.serviceinfo.v1";
+option java_multiple_files = true;
+
+option go_package = "github.com/altessa-s/proto-gen-go/services/serviceinfo/v1;serviceinfov1";
+
+import "google/api/field_behavior.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+// Detailed information about a running service instance: identification,
+// versioning, build details, leadership status, and arbitrary metadata.
+// Every field is populated by the server; clients MUST treat the message
+// as read-only.
+//
+// Deployment guidance: this payload is intended for ops / diagnostic
+// use. It contains no end-user PII by design, but `metadata` MAY carry
+// environment details (region, cluster, feature flags) that you don't
+// always want exposed publicly — production deployments SHOULD gate
+// `ServiceInfoService.Get` behind authn / authz when the service is
+// not in a trusted network.
+//
+// Snapshot semantics: `uptime` (and to a lesser extent `leader` and
+// `leader_id`) are evaluated at request time. Two consecutive calls
+// will return slightly different values; clients that need precise
+// duration arithmetic SHOULD subtract `start_time` from their own
+// clock instead of relying on `uptime`.
+message ServiceInfo {
+  // Defines a version conforming to the Semantic Versioning 2.0.0 specification (semver.org).
+  message SemanticVersion {
+    // The MAJOR version, incremented for incompatible API changes.
+    uint32 major = 1;
+
+    // The MINOR version, incremented for adding functionality in a backward-compatible manner.
+    uint32 minor = 2;
+
+    // The PATCH version, incremented for backward-compatible bug fixes.
+    uint32 patch = 3;
+
+    // Pre-release identifier (e.g., "alpha", "beta.1").
+    // A series of dot-separated identifiers immediately following the patch version.
+    optional string pre_release = 4;
+  }
+
+  // The canonical name of the service (e.g., "user-service", "billing-api").
+  string service_name = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Human-readable description of the service and its purpose.
+  optional string service_description = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Unique identifier for this specific instance of the service (e.g., a UUID or hostname-pid).
+  optional string service_id = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Whether this service instance is currently the leader in a distributed
+  // system. True if this instance is the leader, false otherwise. (Per
+  // AIP-140 boolean fields omit the `is_` prefix.)
+  bool leader = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // The full version string of the service (e.g., "1.2.3-alpha+build.123").
+  // This may include semantic version, pre-release, and build metadata.
+  string full_version = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // The structured semantic version of the service.
+  SemanticVersion semantic_version = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Wall-clock time at which the service binary was built.
+  google.protobuf.Timestamp build_time = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Name of the source code branch from which this service instance was built (e.g., "main", "develop").
+  optional string branch = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Full Git commit hash (SHA) of the source code revision from which this service instance was built.
+  optional string commit = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Build tags or flags used during the compilation of the service.
+  optional string build_tags = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // A collection of key-value pairs for additional, arbitrary metadata about the service instance.
+  // Keys and values are strings. Maximum 100 entries allowed.
+  map<string, string> metadata = 11 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  reserved 12;
+
+  // Identifier of the current leader instance if this node is not the leader.
+  // This is useful for clients to discover the active leader.
+  optional string leader_id = 13 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Wall-clock time at which this service instance started.
+  optional google.protobuf.Timestamp start_time = 14 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Time elapsed since `start_time`. Computed by the server on each request;
+  // clients should treat it as advisory and recompute from `start_time` if
+  // they need precise duration arithmetic.
+  optional google.protobuf.Duration uptime = 15 [(google.api.field_behavior) = OUTPUT_ONLY];
+}

@@ -1,0 +1,55 @@
+// Copyright 2026 Altessa Solutions Inc. All rights reserved.
+// Use of this source code is governed by license that can be found in
+// the LICENSE file.
+
+syntax = "proto3";
+package io.altessa.type.v1;
+
+option java_package = "io.altessa.type.v1";
+option java_multiple_files = true;
+
+option go_package = "github.com/altessa-s/proto-gen-go/type/v1;typev1";
+
+import "google/api/field_behavior.proto";
+
+// Reference to a file held in an external system (object storage, CDN, …).
+// Carries enough information to retrieve the file and describe it for
+// display. The schema is intentionally storage-agnostic — neither bucket
+// nor backend is encoded here.
+message FileRef {
+  // Technical descriptors of the referenced file. Producers SHOULD populate
+  // every field they know; consumers MUST tolerate missing values
+  // (e.g. legacy records, third-party uploads without inspection).
+  message Metadata {
+    // IANA media type of the file content (RFC 6838), e.g. "image/png",
+    // "application/pdf", "text/plain".
+    string mime_type = 1;
+
+    // Size of the file in bytes. Negative values are not meaningful.
+    int64 size_bytes = 2;
+
+    // Original filename including extension, e.g. "report.pdf",
+    // "photo.jpg". Not guaranteed to be unique within the storage backend.
+    string filename = 3;
+
+    // Free-form key/value pairs for caller-defined attributes (checksums,
+    // alt text, source system, …).
+    map<string, string> custom = 4;
+  }
+
+  // URL for accessing the file. MAY be permanent or a time-limited signed
+  // URL — readers must not cache it beyond the lifetime granted by the
+  // issuer.
+  string url = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // Stable identifier of the file in the issuing system. Opaque to
+  // consumers; suitable for re-requesting a fresh URL. Assigned at
+  // upload time and never changes afterwards.
+  string id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE
+  ];
+
+  // File metadata, when known.
+  Metadata metadata = 3;
+}

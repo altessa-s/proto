@@ -1,14 +1,19 @@
 version: v2
 modules:
   - path: .
+deps:
+  # Google common types (google/type/*, google/api/field_behavior, …).
+  # Required by schemas under type/v1/ that reuse google.type.Date,
+  # google.type.Money, google.type.Color, etc.
+  - buf.build/googleapis/googleapis
 lint:
   use:
     - STANDARD
   except:
-    # We use short top-level directories (badrequest/, serviceinfo/) instead
-    # of the full Java-style package path (io/altessa/badrequest/v1/). The
-    # generated Java/PHP/etc. packages still use io.altessa.<name>.v1 via
-    # explicit options.
+    # Files under services/<name>/v1/ declare proto packages like
+    # io.altessa.<name>.v1 (without the `services` prefix); files under
+    # type/v1/ declare io.altessa.type.v1. The generated Java/PHP/etc.
+    # packages still use those names via explicit options.
     - PACKAGE_DIRECTORY_MATCH
     # google.protobuf.Empty is an acceptable request type for parameterless
     # RPCs; consumers don't need to instantiate a wrapper.
@@ -16,6 +21,10 @@ lint:
     # Returning the bare domain type instead of a wrapper response is
     # often preferable for simple read RPCs.
     - RPC_RESPONSE_STANDARD_NAME
+    # SortDirection uses SORT_DIRECTION_ASC = 0 as the natural default
+    # instead of a synthetic SORT_DIRECTION_UNSPECIFIED, since "no value"
+    # and "ascending" are the same thing for ordering.
+    - ENUM_ZERO_VALUE_SUFFIX
 breaking:
   use:
     - FILE

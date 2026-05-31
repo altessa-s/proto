@@ -1,0 +1,37 @@
+// Copyright 2026 Altessa Solutions Inc. All rights reserved.
+// Use of this source code is governed by license that can be found in
+// the LICENSE file.
+
+syntax = "proto3";
+package io.altessa.type.v1;
+
+option java_package = "io.altessa.type.v1";
+option java_multiple_files = true;
+
+option go_package = "github.com/altessa-s/proto-gen-go/type/v1;typev1";
+
+import "google/api/field_behavior.proto";
+import "google/type/money.proto";
+
+// Inclusive range between two monetary amounts. Both bounds MUST share
+// the same `currency_code` and `min` MUST NOT exceed `max`; producers
+// are responsible for enforcing both invariants. A zero-length range
+// (`min == max`) is valid and represents a single amount.
+//
+// `MoneyRange` has no notion of open or half-open ranges — both bounds
+// are required. For one-sided thresholds ("amounts above $100",
+// "amounts up to $1000"), use a single `google.type.Money` on the
+// surrounding message instead of synthesising a sentinel `min` / `max`.
+//
+// Negative amounts are permitted (credits, refunds, signed P&L). The
+// ordering invariant still applies: `min <= max` as signed values
+// (e.g. min = -100, max = -10 is well-formed; min = -10, max = -100 is
+// not).
+message MoneyRange {
+  // Lower bound, inclusive.
+  google.type.Money min = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // Upper bound, inclusive. MUST be in the same currency as `min` and
+  // greater than or equal to `min`.
+  google.type.Money max = 2 [(google.api.field_behavior) = REQUIRED];
+}

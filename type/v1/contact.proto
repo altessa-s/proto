@@ -1,0 +1,47 @@
+// Copyright 2026 Altessa Solutions Inc. All rights reserved.
+// Use of this source code is governed by license that can be found in
+// the LICENSE file.
+
+syntax = "proto3";
+package io.altessa.type.v1;
+
+option java_package = "io.altessa.type.v1";
+option java_multiple_files = true;
+
+option go_package = "github.com/altessa-s/proto-gen-go/type/v1;typev1";
+
+import "google/api/field_behavior.proto";
+import "google/type/phone_number.proto";
+
+// A single contact endpoint (phone, email, social handle, …). The variant
+// of `value` carries both the payload and the category — consumers
+// dispatch on the oneof case instead of inspecting a separate type tag.
+// Phone numbers use google.type.PhoneNumber so country code and extension
+// are preserved structurally; email and social handles are opaque strings
+// whose format is not enforced by this schema.
+message Contact {
+  // Stable identifier of the contact within its issuing system. Opaque to
+  // consumers; used to address this contact in per-element operations on
+  // parent messages (e.g. updating one entry in a `repeated Contact` list
+  // without replacing the whole list). Assigned at creation and never
+  // changes afterwards — to "rename" a contact, delete and recreate it.
+  string id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE
+  ];
+
+  // The contact endpoint. Exactly one variant MUST be set; an unset
+  // `value` is a malformed Contact and producers SHOULD reject it.
+  oneof value {
+    // Email address.
+    string email = 2;
+
+    // Telephone number with structured country code, extension, and
+    // short-code support.
+    google.type.PhoneNumber phone = 3;
+
+    // Social media handle (e.g. "@alice" on a network identified
+    // out-of-band).
+    string social_handle = 4;
+  }
+}

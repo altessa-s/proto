@@ -1,0 +1,41 @@
+// Copyright 2026 Altessa Solutions Inc. All rights reserved.
+// Use of this source code is governed by license that can be found in
+// the LICENSE file.
+
+syntax = "proto3";
+package io.altessa.type.v1;
+
+option java_package = "io.altessa.type.v1";
+option java_multiple_files = true;
+
+option go_package = "github.com/altessa-s/proto-gen-go/type/v1;typev1";
+
+import "google/api/field_behavior.proto";
+import "google/type/date.proto";
+
+// A calendar-date range, inclusive on both ends. Use this for ranges that
+// have no wall-clock component (billing periods, leave windows, …);
+// use google.type.Interval for ranges defined by absolute timestamps.
+//
+// Producers MUST ensure `end_date >= start_date`. A zero-length period
+// (start == end) is a valid one-day range. Consumers SHOULD reject
+// requests that violate the ordering invariant with INVALID_ARGUMENT.
+//
+// `google.type.Date` permits partially-specified values (year-only,
+// year + month, …). `DatePeriod` requires BOTH bounds to be fully
+// specified — non-zero `year`, `month`, and `day` — so consumers can
+// do calendar arithmetic without ambiguity. Producers SHOULD reject
+// partial dates before constructing a `DatePeriod`.
+//
+// Timezone: `google.type.Date` is timezone-naive by design. The
+// surrounding domain decides how to interpret it (e.g. "the billing
+// month in the merchant's local tz"). Do not attach timezone state to
+// a `DatePeriod` via a side-channel — if you need timezone-aware
+// ranges, use `google.type.Interval` instead.
+message DatePeriod {
+  // Start date, inclusive.
+  google.type.Date start_date = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // End date, inclusive. MUST be on or after start_date.
+  google.type.Date end_date = 2 [(google.api.field_behavior) = REQUIRED];
+}

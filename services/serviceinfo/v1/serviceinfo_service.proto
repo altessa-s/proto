@@ -1,0 +1,30 @@
+// Copyright 2026 Altessa Solutions Inc. All rights reserved.
+// Use of this source code is governed by license that can be found in
+// the LICENSE file.
+
+syntax = "proto3";
+package io.altessa.serviceinfo.v1;
+
+option java_package = "io.altessa.serviceinfo.v1";
+option java_multiple_files = true;
+
+option go_package = "github.com/altessa-s/proto-gen-go/services/serviceinfo/v1;serviceinfov1";
+
+import "google/protobuf/empty.proto";
+import "services/serviceinfo/v1/serviceinfo.proto";
+
+// Provides runtime information about the service instance. Implementations
+// MUST treat `Get` as idempotent and side-effect-free; it is safe to call
+// from health probes and load balancers, and safe to expose via gRPC
+// reflection.
+//
+// Registration order matters in some setups: register
+// `ServiceInfoService` before gRPC reflection so reflection-based
+// tooling (grpcurl, Postman, evans) can discover the method without an
+// extra `.proto` import.
+service ServiceInfoService {
+  // Returns the current `ServiceInfo` snapshot. Cheap — implementations
+  // SHOULD compute the response from cached values and only re-evaluate
+  // time-shaped fields (`uptime`, leadership state) on demand.
+  rpc Get(google.protobuf.Empty) returns (ServiceInfo);
+}
