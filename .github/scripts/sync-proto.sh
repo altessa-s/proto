@@ -15,9 +15,10 @@
 #
 # Optional env:
 #   PUBLIC_PROTO_PATHS  space-separated list of published .proto packages
-#                       (default: "badrequest/v1 serviceinfo/v1"). Used by
-#                       the php-rr case to mirror the .proto sources that
-#                       RoadRunner's gRPC plugin needs at runtime.
+#                       (default: "services/badrequest/v1 services/serviceinfo/v1 type/v1").
+#                       Used by the php-rr case to mirror the .proto
+#                       sources that RoadRunner's gRPC plugin needs at
+#                       runtime.
 #
 # Behavior:
 #   - For each language, wipe the regenerable subtree in TARGET_DIR
@@ -48,9 +49,18 @@ fi
 case "${LANGUAGE}" in
   go)
     SRC="gen/go"
-    rm -rf "${TARGET_DIR}/badrequest" "${TARGET_DIR}/serviceinfo"
-    cp -R "${SRC}/badrequest" "${TARGET_DIR}/badrequest"
-    cp -R "${SRC}/serviceinfo" "${TARGET_DIR}/serviceinfo"
+    # Wipe both current and legacy top-level subtrees so the script is
+    # idempotent across the v1 layout switch (badrequest/, serviceinfo/
+    # were the pre-rename top-level directories).
+    rm -rf "${TARGET_DIR}/services" "${TARGET_DIR}/type" \
+           "${TARGET_DIR}/badrequest" "${TARGET_DIR}/serviceinfo"
+    cp -R "${SRC}/services" "${TARGET_DIR}/services"
+    cp -R "${SRC}/type" "${TARGET_DIR}/type"
+    # Refresh go.mod / go.sum so the published module compiles.
+    # field_behavior annotations and google.type.* messages pull in
+    # google.golang.org/genproto/googleapis/{api,type/...} which must be
+    # recorded in go.mod for downstream consumers.
+    (cd "${TARGET_DIR}" && go mod tidy)
     ;;
   java)
     SRC="gen/java"
@@ -94,7 +104,7 @@ case "${LANGUAGE}" in
       # RoadRunner's gRPC plugin needs the original .proto sources at
       # server startup (its `grpc.proto:` config takes file paths).
       rm -rf "${TARGET_DIR}/proto"
-      for path in ${PUBLIC_PROTO_PATHS:-badrequest/v1 serviceinfo/v1}; do
+      for path in ${PUBLIC_PROTO_PATHS:-services/badrequest/v1 services/serviceinfo/v1 type/v1}; do
         mkdir -p "${TARGET_DIR}/proto/${path}"
         cp "${path}"/*.proto "${TARGET_DIR}/proto/${path}/"
       done
@@ -112,6 +122,15 @@ git config user.name "${BOT_NAME}"
 git config user.email "${BOT_EMAIL}"
 git add -A
 
+# Branch pushes from the schema repo mirror to the same-named branch in
+# the target. Tag pushes land on main. main is fast-forward; other
+# branches (currently only develop) are force-pushed because the bot
+# rebuilds them from (main + freshly generated content) on each sync.
+#
+# IMPORTANT: any hand-edited file in a target repo (README, src/index.ts,
+# composer.json, etc.) MUST live on `main` — develop is force-pushed
+# from `actions/checkout main` + sync output, so manual commits made
+# only on develop are silently lost on the next bot run.
 target_branch="main"
 if [[ "${REF_TYPE}" == "branch" ]]; then
   target_branch="${REF_NAME}"

@@ -1,0 +1,41 @@
+// Copyright 2026 Altessa Solutions Inc. All rights reserved.
+// Use of this source code is governed by license that can be found in
+// the LICENSE file.
+
+syntax = "proto3";
+package io.altessa.type.v1;
+
+option java_package = "io.altessa.type.v1";
+option java_multiple_files = true;
+
+option go_package = "github.com/altessa-s/proto-gen-go/type/v1;typev1";
+
+// Ordering direction for list / search responses. Typically appears in
+// a list request next to a service-specific sort-field selector, e.g.
+//
+//   message ListUsersRequest {
+//     string sort_by = 1;             // service-defined field name
+//     SortDirection direction = 2;
+//     Pagination pagination = 3;
+//   }
+//
+// For multi-key ordering or per-field direction, services define their
+// own richer sort message — this enum stays a single-direction
+// primitive on purpose.
+//
+// Zero value: unlike most enums in this package, `SortDirection` does
+// not have an `_UNSPECIFIED` zero value. `SORT_DIRECTION_ASC = 0` is
+// the natural default (matches SQL `ORDER BY` without `DESC`), so a
+// distinct sentinel would add noise without information. This is the
+// only exception in `type/v1` (see `buf.yaml` for the lint waiver).
+//
+// Stability (AIP-180): closed and frozen at v1. There are only two
+// meaningful directions for a single sort key; consumers MAY assume
+// the value set will not grow.
+enum SortDirection {
+  // Ascending: A→Z, 0→9, oldest first. This is the default.
+  SORT_DIRECTION_ASC = 0;
+
+  // Descending: Z→A, 9→0, newest first.
+  SORT_DIRECTION_DESC = 1;
+}

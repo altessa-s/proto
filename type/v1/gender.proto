@@ -1,0 +1,26 @@
+// Copyright 2026 Altessa Solutions Inc. All rights reserved.
+// Use of this source code is governed by license that can be found in
+// the LICENSE file.
+
+syntax = "proto3";
+package io.altessa.type.v1;
+
+option java_package = "io.altessa.type.v1";
+option java_multiple_files = true;
+
+option go_package = "github.com/altessa-s/proto-gen-go/type/v1;typev1";
+
+// Biological sex of a person. Intentionally minimal — extend the schema in
+// downstream code if richer gender identity is needed (this enum stays
+// stable and small so it can be reused across unrelated services).
+//
+// Stability (AIP-180): closed and frozen at v1. New values are NOT
+// expected; consumers MAY assume the value set will not grow.
+enum Gender {
+  // Sentinel default. Treat as "not provided" rather than as a value.
+  GENDER_UNSPECIFIED = 0;
+
+  GENDER_MALE = 1;
+
+  GENDER_FEMALE = 2;
+}

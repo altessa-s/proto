@@ -1,0 +1,42 @@
+// Copyright 2026 Altessa Solutions Inc. All rights reserved.
+// Use of this source code is governed by license that can be found in
+// the LICENSE file.
+
+syntax = "proto3";
+package io.altessa.type.v1;
+
+option java_package = "io.altessa.type.v1";
+option java_multiple_files = true;
+
+option go_package = "github.com/altessa-s/proto-gen-go/type/v1;typev1";
+
+import "google/api/field_behavior.proto";
+import "google/type/color.proto";
+
+// A short text tag with an optional display color. Suitable for chips,
+// badges, and other UI affordances where a stable id is needed alongside
+// the rendered text.
+//
+// Scope: `id` is unique within the issuing system, not globally — when
+// embedding `Label` from multiple systems in one client, namespace by
+// source rather than assuming id uniqueness across them.
+//
+// Localization: `value` is a single string in a single language.
+// Consumers that need multi-language rendering SHOULD localize at the
+// boundary (e.g. via a translation map keyed by `id`) rather than
+// shipping multiple `Label` instances per language.
+message Label {
+  // Stable identifier of the label within its issuing system. Opaque to
+  // consumers. Assigned at creation and never changes afterwards.
+  string id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE
+  ];
+
+  // Display text, e.g. "Urgent", "Завершено".
+  string value = 2 [(google.api.field_behavior) = REQUIRED];
+
+  // Display color. When unset, consumers SHOULD fall back to a neutral
+  // default.
+  google.type.Color color = 3;
+}

@@ -1,0 +1,50 @@
+// Copyright 2026 Altessa Solutions Inc. All rights reserved.
+// Use of this source code is governed by license that can be found in
+// the LICENSE file.
+
+syntax = "proto3";
+package io.altessa.type.v1;
+
+option java_package = "io.altessa.type.v1";
+option java_multiple_files = true;
+
+option go_package = "github.com/altessa-s/proto-gen-go/type/v1;typev1";
+
+// Privacy level applied to a user's geolocation before it is exposed to
+// other users or downstream services. The actor that holds raw coordinates
+// is expected to coarsen them according to this enum before propagation.
+//
+// The schema only mandates the precision tier — the exact coarsening
+// method (truncation, round-to-nearest, geohash, k-anonymity bucket,
+// …) is the producer's choice. Producers SHOULD pick one method and
+// apply it deterministically per user, so the user's exposed position
+// does not jitter between requests with no real-world movement (this
+// would otherwise leak the true position via averaging).
+//
+// Stability (AIP-180): closed and frozen at v1. New values are NOT
+// expected; new precision tiers belong in domain-specific schemas
+// rather than as additions here.
+enum LocationPrivacy {
+  // Sentinel default. When received from a client in a request, servers
+  // SHOULD reject with INVALID_ARGUMENT so the privacy choice is
+  // explicit. When read from persistent storage, servers SHOULD apply
+  // the most restrictive interpretation (= treat as LOCATION_PRIVACY_OFF).
+  LOCATION_PRIVACY_UNSPECIFIED = 0;
+
+  // Tracking disabled. Coordinates must not be persisted.
+  LOCATION_PRIVACY_OFF = 1;
+
+  // Coordinates are persisted but not exposed to other users. The owner can
+  // search relative to their own position; they remain non-discoverable to
+  // peers.
+  LOCATION_PRIVACY_PRIVATE = 2;
+
+  // City-scale precision: coordinates rounded to ~10 km (≈ 0.1°).
+  LOCATION_PRIVACY_PUBLIC_CITY = 3;
+
+  // Neighbourhood-scale precision: coordinates rounded to ~1 km (≈ 0.01°).
+  LOCATION_PRIVACY_PUBLIC_APPROXIMATE = 4;
+
+  // Full precision (~10 m). Coordinates are exposed as captured.
+  LOCATION_PRIVACY_PUBLIC_EXACT = 5;
+}

@@ -39,13 +39,54 @@ permissions:
 # schema. Used both as `--path` filters to `buf generate` and to copy the
 # .proto sources into `proto-gen-php-rr` (RoadRunner needs them at runtime).
 env:
-  PUBLIC_PROTO_PATHS: "badrequest/v1 serviceinfo/v1"
+  PUBLIC_PROTO_PATHS: "services/badrequest/v1 services/serviceinfo/v1 type/v1"
   # Opt into Node.js 24 for JS-based actions (default starting 2026-06-02).
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
+  bsr-push:
+    name: Push to BSR
+    runs-on: ubuntu-latest
+    # Publishes the module to buf.build/altessa-s/proto on every push to
+    # main / develop and every vX.Y.Z tag. BSR-generated SDKs for Go /
+    # TypeScript / Java are populated automatically from this push and
+    # served at buf.build/gen/<lang>/altessa-s/proto/... — see README
+    # "Generated bindings" for consumer-side details.
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: bufbuild/buf-setup-action@v1
+        with:
+          version: 1.69.0
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          buf_user: ${{ secrets.BUF_USER }}
+          buf_api_token: ${{ secrets.BUF_TOKEN }}
+
+      - name: Resolve buf dependencies
+        run: buf dep update
+
+      - name: Compute BSR labels
+        id: labels
+        # Branch pushes get a label matching the branch name (`main`,
+        # `develop`). Tag pushes get a label matching the tag PLUS the
+        # `main` rolling label, so consumers tracking `:main` follow
+        # released versions automatically. `buf push` is idempotent —
+        # if module content is unchanged, only the label is moved.
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            echo "args=--label ${{ github.ref_name }} --label main" >> "$GITHUB_OUTPUT"
+          else
+            echo "args=--label ${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: buf push
+        run: buf push ${{ steps.labels.outputs.args }}
+
   publish:
     name: Publish ${{ matrix.language }}
+    needs: bsr-push
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -185,6 +226,14 @@ jobs:
           install -m 0755 "${tmp}/protoc-gen-php-grpc-${RR_VERSION}-linux-amd64/protoc-gen-php-grpc" "$HOME/.local/bin/protoc-gen-php-grpc"
           rm -rf "${tmp}"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Resolve buf dependencies
+        # Pulls buf.build/googleapis/googleapis (required for
+        # google/api/field_behavior.proto and google/type/*.proto used by
+        # schemas under type/v1/). No buf.lock is committed, so this must
+        # run before every `buf generate`. The googleapis module is public
+        # and does not require BSR authentication.
+        run: buf dep update
 
       - name: Generate ${{ matrix.language }} bindings
         run: buf generate --template buf.gen.${{ matrix.language }}.yaml

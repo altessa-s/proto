@@ -1,4 +1,21 @@
 version: v2
+# protoc-gen-swift 1.30 ignores `include_imports: true` and does not
+# emit Swift for transitively imported modules, even when buf passes
+# them. We therefore declare the googleapis files we need explicitly
+# as additional inputs so the plugin treats them as primary and emits
+# Swift for them alongside our schemas. Apple's swift-protobuf bundles
+# google.protobuf.* well-knowns; google.type.{Color,Date,Money,
+# PhoneNumber} and google.api.field_behavior options are not bundled
+# anywhere and have no canonical SwiftPM package — hence this vendor.
+inputs:
+  - directory: .
+  - module: buf.build/googleapis/googleapis
+    paths:
+      - google/api/field_behavior.proto
+      - google/type/color.proto
+      - google/type/date.proto
+      - google/type/money.proto
+      - google/type/phone_number.proto
 plugins:
   # Message types only. The grpc-swift service-stub plugin
   # (protoc-gen-grpc-swift) is intentionally NOT wired here while the

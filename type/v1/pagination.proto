@@ -1,0 +1,60 @@
+// Copyright 2026 Altessa Solutions Inc. All rights reserved.
+// Use of this source code is governed by license that can be found in
+// the LICENSE file.
+
+syntax = "proto3";
+package io.altessa.type.v1;
+
+option java_package = "io.altessa.type.v1";
+option java_multiple_files = true;
+
+option go_package = "github.com/altessa-s/proto-gen-go/type/v1;typev1";
+
+import "google/api/field_behavior.proto";
+
+// Pagination parameters for list requests. Field names and types follow
+// https://google.aip.dev/158; the message additionally carries an
+// `offset` field for collections where token-based continuation is
+// inconvenient (small, slow-changing, or admin-only lists).
+// `page_token` and `offset` are mutually exclusive — set at most one.
+//
+// Request-side only. This message covers the parameters a client sends;
+// services define their own list-response shape — by convention a
+// repeated items field at position 1 plus a `string next_page_token`
+// that callers feed back into `page_token` on the following request.
+// There is intentionally no shared `PaginationResponse` here because
+// the items-field type and optional total counts vary per service.
+//
+// `page_size` semantics: zero requests the service-defined default of
+// 1000 items. Servers MUST cap it at an implementation-defined maximum
+// and MUST return INVALID_ARGUMENT for negative values. The
+// NON_EMPTY_DEFAULT annotation signals that the server substitutes a
+// concrete non-empty value (1000) when the client leaves the field
+// unset.
+//
+// `page_token` semantics: opaque string minted by the server. Clients
+// MUST round-trip it verbatim and MUST NOT decode or synthesise one.
+// Servers MAY invalidate tokens at any time (schema migrations,
+// snapshot expiry) and SHOULD respond with INVALID_ARGUMENT or a typed
+// error rather than silently restarting from the first page.
+//
+// `offset` semantics: number of items to skip from the start of the
+// unpaginated result set. Prefer `page_token` for large or rapidly
+// changing collections — `offset` re-scans the result set and is
+// subject to drift when items are inserted or deleted between calls.
+message Pagination {
+  // Maximum number of items the server should return. Zero requests
+  // the service-defined default (1000); negative values yield
+  // INVALID_ARGUMENT.
+  int32 page_size = 1 [(google.api.field_behavior) = NON_EMPTY_DEFAULT];
+
+  // Opaque continuation token returned in a previous list response.
+  // Empty (the default) requests the first page. Mutually exclusive
+  // with `offset`.
+  string page_token = 2;
+
+  // Number of items to skip from the start of the unpaginated result
+  // set. Zero (the proto3 default) requests the first page. Mutually
+  // exclusive with `page_token`.
+  int32 offset = 3;
+}

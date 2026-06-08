@@ -1,0 +1,32 @@
+// Copyright 2026 Altessa Solutions Inc. All rights reserved.
+// Use of this source code is governed by license that can be found in
+// the LICENSE file.
+
+syntax = "proto3";
+package io.altessa.type.v1;
+
+option java_package = "io.altessa.type.v1";
+option java_multiple_files = true;
+
+option go_package = "github.com/altessa-s/proto-gen-go/type/v1;typev1";
+
+// Legal form of an organization at a coarse level. Use this when the
+// distinction "natural person doing business" vs "registered legal entity"
+// is enough; jurisdiction-specific subtypes (ИП vs самозанятый, LLC vs
+// C-corp, …) belong in a domain-specific schema.
+//
+// Stability (AIP-180): closed and frozen at v1. New values are NOT
+// expected; jurisdiction-specific subtypes are added in domain
+// schemas, not here.
+enum OrganizationType {
+  // Sentinel default. Treat as "not provided" rather than as a value.
+  ORGANIZATION_TYPE_UNSPECIFIED = 0;
+
+  // Natural person operating as a sole proprietor / individual entrepreneur
+  // (e.g. ИП in RU, sole trader in UK, sole proprietorship in US).
+  ORGANIZATION_TYPE_INDIVIDUAL = 1;
+
+  // Registered legal entity distinct from its owners (e.g. ООО / АО in RU,
+  // LLC / Inc. in US, GmbH / AG in DE).
+  ORGANIZATION_TYPE_ORGANIZATION = 2;
+}
