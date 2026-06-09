@@ -108,6 +108,13 @@ case "${LANGUAGE}" in
         mkdir -p "${TARGET_DIR}/proto/${path}"
         cp "${path}"/*.proto "${TARGET_DIR}/proto/${path}/"
       done
+      # Mirror vendored third-party imports (google.api.field_behavior,
+      # google.type.*) so RoadRunner can resolve the schema's imports
+      # without an external include path.
+      if [[ -d third_party/google ]]; then
+        mkdir -p "${TARGET_DIR}/proto/google"
+        cp -R third_party/google/. "${TARGET_DIR}/proto/google/"
+      fi
     fi
     ;;
   *)
