@@ -6,9 +6,17 @@ modules:
       - third_party
   # Vendored Google common-types (google/api/field_behavior, google/type/*).
   # Used to be pulled from buf.build/googleapis/googleapis; vendored so that
-  # codegen works offline and without a BSR token. Refresh with:
-  #   cp ~/.cache/buf/v3/modules/b5/buf.build/googleapis/googleapis/<digest>/files/google/{api/field_behavior,type/{color,date,money,phone_number}}.proto third_party/google/...
+  # codegen works offline and without a BSR token. Published to BSR as a
+  # separate module so the main `proto` module can declare it as a dep on
+  # `buf push`. Refresh procedure: see README "Vendored googleapis".
   - path: third_party
+    name: buf.build/altessa-s/proto-deps
+deps:
+  # Workspace-local resolution: when buf builds the `proto` module, this
+  # dep resolves to the sibling `proto-deps` module in the same workspace
+  # (no BSR fetch, no buf.lock needed for local dev). BSR `buf push`
+  # uses the declared dep to record the cross-module reference.
+  - buf.build/altessa-s/proto-deps
 lint:
   use:
     - STANDARD
