@@ -64,9 +64,6 @@ jobs:
           buf_user: ${{ secrets.BUF_USER }}
           buf_api_token: ${{ secrets.BUF_TOKEN }}
 
-      - name: Resolve buf dependencies
-        run: buf dep update
-
       - name: Compute BSR labels
         id: labels
         # Branch pushes get a label matching the branch name (`main`,
@@ -82,7 +79,12 @@ jobs:
           fi
 
       - name: buf push
-        run: buf push ${{ steps.labels.outputs.args }}
+        # Pushes BOTH named modules in the workspace:
+        # - buf.build/altessa-s/proto       (main schema)
+        # - buf.build/altessa-s/proto-deps  (vendored googleapis)
+        # --create bootstraps a BSR module on its first push; subsequent
+        # runs no-op the create. Visibility mirrors `proto` (public).
+        run: buf push --create --create-visibility=public ${{ steps.labels.outputs.args }}
 
   publish:
     name: Publish ${{ matrix.language }}

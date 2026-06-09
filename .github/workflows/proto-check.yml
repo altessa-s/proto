@@ -36,13 +36,6 @@ jobs:
           buf_user: ${{ secrets.BUF_USER }}
           buf_api_token: ${{ secrets.BUF_TOKEN }}
 
-      - name: Resolve buf dependencies
-        # Pulls buf.build/googleapis/googleapis (required for
-        # google/api/field_behavior.proto and google/type/*.proto). No
-        # buf.lock is committed, so this must run before any buf command
-        # that resolves imports.
-        run: buf dep update
-
       - name: buf lint
         run: buf lint
 
