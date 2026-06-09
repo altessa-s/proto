@@ -11,12 +11,16 @@ per-language repositories (see [Generated bindings](#generated-bindings)).
 services/
   badrequest/v1/        # error-detail payload for INVALID_ARGUMENT
   serviceinfo/v1/       # runtime service-introspection RPC
-type/v1/               # general-purpose value types (Contact, FileRef, …)
+type/v1/                # general-purpose value types (Contact, FileRef, …)
+third_party/google/     # vendored googleapis protos (field_behavior + google.type.*)
 ```
 
 `services/<name>/v1/` holds an RPC contract plus any messages it needs.
 `type/v1/` is a flat collection of small, reusable value types that have
 no Google-published equivalent.
+`third_party/` vendors the handful of `google/api` and `google/type`
+protos the schemas import — see [Vendored googleapis](#vendored-googleapis)
+for the rationale.
 
 ## Conventions
 
@@ -372,16 +376,12 @@ forward to `develop` automatically.
 
 ## Build & lint
 
-This repo's schemas depend on
-[`buf.build/googleapis/googleapis`](https://buf.build/googleapis/googleapis)
-for `google/type/*`, `google/api/field_behavior.proto`, etc. Fetch the
-dependency once before lint or generation:
-
-```
-buf dep update
-```
-
-Then:
+Five common-types files from
+[googleapis](https://github.com/googleapis/googleapis) — `google/api/field_behavior.proto`
+and `google/type/{color,date,money,phone_number}.proto` — are vendored
+under `third_party/` and registered as a second `buf` module in
+`buf.yaml`. No `buf dep update` and no BSR token are required for lint
+or codegen; just run:
 
 ```
 buf lint
@@ -398,7 +398,33 @@ make proto-php-rr
 
 Generated output lands under `gen/<lang>/` (gitignored). `buf lint` and
 `buf breaking` run automatically in CI for every PR touching schema
-files.
+files. The vendored `third_party/` module is excluded from both — its
+content is upstream's responsibility.
+
+### Vendored googleapis
+
+The schemas reference `google.api.field_behavior` and
+`google.type.{Color,Date,Money,PhoneNumber}`. These are not bundled
+with `protoc` (only `google.protobuf.*` well-knowns are), and pulling
+them from `buf.build/googleapis/googleapis` requires a BSR token —
+inconvenient for offline development, CI without a BSR secret, and
+language toolchains (PHP, Swift) that don't speak BSR fluently.
+
+Vendoring them under `third_party/google/` keeps codegen hermetic for
+all six languages and removes BSR from the lint/gen critical path.
+Refresh by copying from the buf cache after any `buf dep update` run:
+
+```
+DIGEST=$(ls -1 ~/.cache/buf/v3/modules/b5/buf.build/googleapis/googleapis | tail -1)
+SRC=~/.cache/buf/v3/modules/b5/buf.build/googleapis/googleapis/$DIGEST/files
+cp $SRC/google/api/field_behavior.proto       third_party/google/api/
+cp $SRC/google/type/{color,date,money,phone_number}.proto third_party/google/type/
+```
+
+If you add a new `google/*` import in a schema, vendor the new file
+the same way and add it to the Swift template's `inputs:` block (Swift
+needs each googleapis file as a primary input — see comment in
+`buf.gen.swift.yaml`).
 
 ## License
 

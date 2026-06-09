@@ -2,11 +2,13 @@ version: v2
 modules:
   - path: .
     name: buf.build/altessa-s/proto
-deps:
-  # Google common types (google/type/*, google/api/field_behavior, …).
-  # Required by schemas under type/v1/ that reuse google.type.Date,
-  # google.type.Money, google.type.Color, etc.
-  - buf.build/googleapis/googleapis
+    excludes:
+      - third_party
+  # Vendored Google common-types (google/api/field_behavior, google/type/*).
+  # Used to be pulled from buf.build/googleapis/googleapis; vendored so that
+  # codegen works offline and without a BSR token. Refresh with:
+  #   cp ~/.cache/buf/v3/modules/b5/buf.build/googleapis/googleapis/<digest>/files/google/{api/field_behavior,type/{color,date,money,phone_number}}.proto third_party/google/...
+  - path: third_party
 lint:
   use:
     - STANDARD
@@ -26,6 +28,11 @@ lint:
     # instead of a synthetic SORT_DIRECTION_UNSPECIFIED, since "no value"
     # and "ascending" are the same thing for ordering.
     - ENUM_ZERO_VALUE_SUFFIX
+  ignore:
+    # Vendored upstream protos — lint/style are upstream's responsibility.
+    - third_party
 breaking:
   use:
     - FILE
+  ignore:
+    - third_party
