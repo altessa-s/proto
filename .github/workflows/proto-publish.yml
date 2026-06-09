@@ -229,14 +229,6 @@ jobs:
           rm -rf "${tmp}"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-      - name: Resolve buf dependencies
-        # Pulls buf.build/googleapis/googleapis (required for
-        # google/api/field_behavior.proto and google/type/*.proto used by
-        # schemas under type/v1/). No buf.lock is committed, so this must
-        # run before every `buf generate`. The googleapis module is public
-        # and does not require BSR authentication.
-        run: buf dep update
-
       - name: Generate ${{ matrix.language }} bindings
         run: buf generate --template buf.gen.${{ matrix.language }}.yaml
 
