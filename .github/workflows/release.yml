@@ -1,0 +1,41 @@
+name: Release
+
+# Publishes a GitHub Release for every vX.Y.Z tag. Release notes are
+# generated from Conventional Commits since the previous tag. This runs
+# independently of Proto Publish (which mirrors generated bindings to the
+# per-language repos) — see .github/workflows/proto-publish.yml.
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history so the release-notes script can resolve the
+          # previous tag and build the changelog range.
+          fetch-depth: 0
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          chmod +x .github/scripts/generate-release-notes.sh
+          .github/scripts/generate-release-notes.sh "${GITHUB_REF_NAME}" > RELEASE_NOTES.md
+          cat RELEASE_NOTES.md
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          body_path: RELEASE_NOTES.md
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
