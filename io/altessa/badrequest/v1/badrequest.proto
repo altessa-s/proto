@@ -6,6 +6,10 @@ syntax = "proto3";
 package io.altessa.badrequest.v1;
 
 option java_package = "io.altessa.badrequest.v1";
+// Explicit outer class name: without it protoc derives it from the file
+// name (`Badrequest`), which collides with the `BadRequest` message class
+// on case-insensitive filesystems (macOS/Windows) during Java builds.
+option java_outer_classname = "BadRequestProto";
 option java_multiple_files = true;
 
 option go_package = "github.com/altessa-s/proto-gen-go/io/altessa/badrequest/v1;badrequestv1";
