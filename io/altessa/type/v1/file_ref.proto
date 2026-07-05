@@ -8,7 +8,7 @@ package io.altessa.type.v1;
 option java_package = "io.altessa.type.v1";
 option java_multiple_files = true;
 
-option go_package = "github.com/altessa-s/proto-gen-go/type/v1;typev1";
+option go_package = "github.com/altessa-s/proto-gen-go/io/altessa/type/v1;typev1";
 
 import "google/api/field_behavior.proto";
 
@@ -45,10 +45,7 @@ message FileRef {
   // Stable identifier of the file in the issuing system. Opaque to
   // consumers; suitable for re-requesting a fresh URL. Assigned at
   // upload time and never changes afterwards.
-  string id = 2 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = IMMUTABLE
-  ];
+  string id = 2 [(google.api.field_behavior) = IDENTIFIER];
 
   // File metadata, when known.
   Metadata metadata = 3;

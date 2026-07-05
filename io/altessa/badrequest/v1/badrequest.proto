@@ -8,7 +8,7 @@ package io.altessa.badrequest.v1;
 option java_package = "io.altessa.badrequest.v1";
 option java_multiple_files = true;
 
-option go_package = "github.com/altessa-s/proto-gen-go/services/badrequest/v1;badrequestv1";
+option go_package = "github.com/altessa-s/proto-gen-go/io/altessa/badrequest/v1;badrequestv1";
 
 import "google/api/field_behavior.proto";
 
@@ -91,41 +91,43 @@ message BadRequest {
 message FieldViolation {
   // The dot-separated path to the field that caused the violation.
   // For example, "user.address.street" or "items[2].name".
-  optional string field_path = 1;
+  optional string field_path = 1 [(google.api.field_behavior) = OPTIONAL];
 
   // Human-readable message describing the violation.
-  optional string message = 2;
+  optional string message = 2 [(google.api.field_behavior) = OPTIONAL];
 
   // Application-specific error code or identifier for this type of violation.
-  optional string code = 3;
+  optional string code = 3 [(google.api.field_behavior) = OPTIONAL];
 
   // Structured representation of the path to the field that caused the violation.
-  repeated FieldPathComponent field_path_components = 4;
+  repeated FieldPathComponent field_path_components = 4 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // Defines a single segment in the path to a violated field.
 // It provides details about the field name, number, type, and, if applicable, its index in a repeated field or its key in a map.
 message FieldPathComponent {
   // Field number as defined in the .proto file.
-  optional int32 number = 1;
+  optional int32 number = 1 [(google.api.field_behavior) = OPTIONAL];
 
   // Name of the field as defined in the .proto file.
-  optional string name = 2;
+  optional string name = 2 [(google.api.field_behavior) = OPTIONAL];
 
   // Data type of the field.
-  optional FieldType type = 3;
+  optional FieldType type = 3 [(google.api.field_behavior) = OPTIONAL];
 
   // For map fields, specifies the data type of the map keys.
-  optional FieldType map_key_type = 4;
+  optional FieldType map_key_type = 4 [(google.api.field_behavior) = OPTIONAL];
 
   // For map fields, specifies the data type of the map values.
-  optional FieldType map_value_type = 5;
+  optional FieldType map_value_type = 5 [(google.api.field_behavior) = OPTIONAL];
 
   // Indicates whether the field is a repeated field (i.e., an array or list).
-  optional bool is_repeated = 6;
+  // AIP-140: boolean fields omit the `is_` prefix; `repeated` is a proto
+  // keyword, so this reads as `repeated_field`.
+  optional bool repeated_field = 6 [(google.api.field_behavior) = OPTIONAL];
 
   // For repeated fields, the 0-based index of the element that caused the violation.
-  optional uint64 repeated_index = 7;
+  optional uint64 repeated_index = 7 [(google.api.field_behavior) = OPTIONAL];
 
   // If the field is a map, this `oneof` specifies the key of the map entry that caused the violation.
   oneof map_key {

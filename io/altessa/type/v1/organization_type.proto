@@ -8,7 +8,7 @@ package io.altessa.type.v1;
 option java_package = "io.altessa.type.v1";
 option java_multiple_files = true;
 
-option go_package = "github.com/altessa-s/proto-gen-go/type/v1;typev1";
+option go_package = "github.com/altessa-s/proto-gen-go/io/altessa/type/v1;typev1";
 
 // Legal form of an organization at a coarse level. Use this when the
 // distinction "natural person doing business" vs "registered legal entity"

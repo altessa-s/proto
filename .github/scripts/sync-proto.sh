@@ -15,7 +15,7 @@
 #
 # Optional env:
 #   PUBLIC_PROTO_PATHS  space-separated list of published .proto packages
-#                       (default: "services/badrequest/v1 services/serviceinfo/v1 type/v1").
+#                       (default: "io/altessa/badrequest/v1 io/altessa/serviceinfo/v1 io/altessa/type/v1").
 #                       Used by the php-rr case to mirror the .proto
 #                       sources that RoadRunner's gRPC plugin needs at
 #                       runtime.
@@ -49,13 +49,13 @@ fi
 case "${LANGUAGE}" in
   go)
     SRC="gen/go"
-    # Wipe both current and legacy top-level subtrees so the script is
-    # idempotent across the v1 layout switch (badrequest/, serviceinfo/
-    # were the pre-rename top-level directories).
-    rm -rf "${TARGET_DIR}/services" "${TARGET_DIR}/type" \
+    # Wipe the current and every legacy top-level subtree so the script is
+    # idempotent across layout switches (services/, type/, badrequest/,
+    # serviceinfo/ were pre-`io/altessa/` top-level directories).
+    rm -rf "${TARGET_DIR}/io" \
+           "${TARGET_DIR}/services" "${TARGET_DIR}/type" \
            "${TARGET_DIR}/badrequest" "${TARGET_DIR}/serviceinfo"
-    cp -R "${SRC}/services" "${TARGET_DIR}/services"
-    cp -R "${SRC}/type" "${TARGET_DIR}/type"
+    cp -R "${SRC}/io" "${TARGET_DIR}/io"
     # Refresh go.mod / go.sum so the published module compiles.
     # field_behavior annotations and google.type.* messages pull in
     # google.golang.org/genproto/googleapis/{api,type/...} which must be
@@ -104,7 +104,7 @@ case "${LANGUAGE}" in
       # RoadRunner's gRPC plugin needs the original .proto sources at
       # server startup (its `grpc.proto:` config takes file paths).
       rm -rf "${TARGET_DIR}/proto"
-      for path in ${PUBLIC_PROTO_PATHS:-services/badrequest/v1 services/serviceinfo/v1 type/v1}; do
+      for path in ${PUBLIC_PROTO_PATHS:-io/altessa/badrequest/v1 io/altessa/serviceinfo/v1 io/altessa/type/v1}; do
         mkdir -p "${TARGET_DIR}/proto/${path}"
         cp "${path}"/*.proto "${TARGET_DIR}/proto/${path}/"
       done
