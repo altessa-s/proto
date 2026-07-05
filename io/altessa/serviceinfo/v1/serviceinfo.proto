@@ -6,9 +6,13 @@ syntax = "proto3";
 package io.altessa.serviceinfo.v1;
 
 option java_package = "io.altessa.serviceinfo.v1";
+// Explicit outer class name: without it protoc derives it from the file
+// name (`Serviceinfo`), which collides with the `ServiceInfo` message class
+// on case-insensitive filesystems (macOS/Windows) during Java builds.
+option java_outer_classname = "ServiceInfoProto";
 option java_multiple_files = true;
 
-option go_package = "github.com/altessa-s/proto-gen-go/services/serviceinfo/v1;serviceinfov1";
+option go_package = "github.com/altessa-s/proto-gen-go/io/altessa/serviceinfo/v1;serviceinfov1";
 
 import "google/api/field_behavior.proto";
 import "google/protobuf/duration.proto";
@@ -23,7 +27,7 @@ import "google/protobuf/timestamp.proto";
 // use. It contains no end-user PII by design, but `metadata` MAY carry
 // environment details (region, cluster, feature flags) that you don't
 // always want exposed publicly — production deployments SHOULD gate
-// `ServiceInfoService.Get` behind authn / authz when the service is
+// `ServiceInfoService.GetServiceInfo` behind authn / authz when the service is
 // not in a trusted network.
 //
 // Snapshot semantics: `uptime` (and to a lesser extent `leader` and
@@ -35,17 +39,17 @@ message ServiceInfo {
   // Defines a version conforming to the Semantic Versioning 2.0.0 specification (semver.org).
   message SemanticVersion {
     // The MAJOR version, incremented for incompatible API changes.
-    uint32 major = 1;
+    uint32 major = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
 
     // The MINOR version, incremented for adding functionality in a backward-compatible manner.
-    uint32 minor = 2;
+    uint32 minor = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
 
     // The PATCH version, incremented for backward-compatible bug fixes.
-    uint32 patch = 3;
+    uint32 patch = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
 
     // Pre-release identifier (e.g., "alpha", "beta.1").
     // A series of dot-separated identifiers immediately following the patch version.
-    optional string pre_release = 4;
+    optional string pre_release = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
   }
 
   // The canonical name of the service (e.g., "user-service", "billing-api").

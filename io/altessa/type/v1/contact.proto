@@ -6,9 +6,10 @@ syntax = "proto3";
 package io.altessa.type.v1;
 
 option java_package = "io.altessa.type.v1";
+option java_outer_classname = "ContactProto";
 option java_multiple_files = true;
 
-option go_package = "github.com/altessa-s/proto-gen-go/type/v1;typev1";
+option go_package = "github.com/altessa-s/proto-gen-go/io/altessa/type/v1;typev1";
 
 import "google/api/field_behavior.proto";
 import "google/type/phone_number.proto";
@@ -25,10 +26,7 @@ message Contact {
   // parent messages (e.g. updating one entry in a `repeated Contact` list
   // without replacing the whole list). Assigned at creation and never
   // changes afterwards — to "rename" a contact, delete and recreate it.
-  string id = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = IMMUTABLE
-  ];
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
 
   // The contact endpoint. Exactly one variant MUST be set; an unset
   // `value` is a malformed Contact and producers SHOULD reject it.

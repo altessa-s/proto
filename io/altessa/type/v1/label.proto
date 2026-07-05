@@ -6,9 +6,10 @@ syntax = "proto3";
 package io.altessa.type.v1;
 
 option java_package = "io.altessa.type.v1";
+option java_outer_classname = "LabelProto";
 option java_multiple_files = true;
 
-option go_package = "github.com/altessa-s/proto-gen-go/type/v1;typev1";
+option go_package = "github.com/altessa-s/proto-gen-go/io/altessa/type/v1;typev1";
 
 import "google/api/field_behavior.proto";
 import "google/type/color.proto";
@@ -28,10 +29,7 @@ import "google/type/color.proto";
 message Label {
   // Stable identifier of the label within its issuing system. Opaque to
   // consumers. Assigned at creation and never changes afterwards.
-  string id = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = IMMUTABLE
-  ];
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
 
   // Display text, e.g. "Urgent", "Завершено".
   string value = 2 [(google.api.field_behavior) = REQUIRED];

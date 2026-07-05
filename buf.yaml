@@ -2,30 +2,29 @@ version: v2
 modules:
   - path: .
     name: buf.build/altessa-s/proto
+    excludes:
+      - third_party
+  # Vendored Google common-types (google/api/field_behavior, google/type/*).
+  # Used to be pulled from buf.build/googleapis/googleapis; vendored so that
+  # codegen works offline and without a BSR token. Published to BSR as a
+  # separate module so the main `proto` module can declare it as a dep on
+  # `buf push`. Refresh procedure: see README "Vendored googleapis".
+  - path: third_party
+    name: buf.build/altessa-s/proto-deps
 deps:
-  # Google common types (google/type/*, google/api/field_behavior, …).
-  # Required by schemas under type/v1/ that reuse google.type.Date,
-  # google.type.Money, google.type.Color, etc.
-  - buf.build/googleapis/googleapis
+  # Workspace-local resolution: when buf builds the `proto` module, this
+  # dep resolves to the sibling `proto-deps` module in the same workspace
+  # (no BSR fetch, no buf.lock needed for local dev). BSR `buf push`
+  # uses the declared dep to record the cross-module reference.
+  - buf.build/altessa-s/proto-deps
 lint:
   use:
     - STANDARD
-  except:
-    # Files under services/<name>/v1/ declare proto packages like
-    # io.altessa.<name>.v1 (without the `services` prefix); files under
-    # type/v1/ declare io.altessa.type.v1. The generated Java/PHP/etc.
-    # packages still use those names via explicit options.
-    - PACKAGE_DIRECTORY_MATCH
-    # google.protobuf.Empty is an acceptable request type for parameterless
-    # RPCs; consumers don't need to instantiate a wrapper.
-    - RPC_REQUEST_STANDARD_NAME
-    # Returning the bare domain type instead of a wrapper response is
-    # often preferable for simple read RPCs.
-    - RPC_RESPONSE_STANDARD_NAME
-    # SortDirection uses SORT_DIRECTION_ASC = 0 as the natural default
-    # instead of a synthetic SORT_DIRECTION_UNSPECIFIED, since "no value"
-    # and "ascending" are the same thing for ordering.
-    - ENUM_ZERO_VALUE_SUFFIX
+  ignore:
+    # Vendored upstream protos — lint/style are upstream's responsibility.
+    - third_party
 breaking:
   use:
     - FILE
+  ignore:
+    - third_party

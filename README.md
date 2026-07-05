@@ -8,15 +8,20 @@ per-language repositories (see [Generated bindings](#generated-bindings)).
 ## Repository layout
 
 ```
-services/
+io/altessa/
   badrequest/v1/        # error-detail payload for INVALID_ARGUMENT
   serviceinfo/v1/       # runtime service-introspection RPC
-type/v1/               # general-purpose value types (Contact, FileRef, …)
+  type/v1/              # general-purpose value types (Contact, FileRef, …)
+third_party/google/     # vendored googleapis protos (field_behavior + google.type.*)
 ```
 
-`services/<name>/v1/` holds an RPC contract plus any messages it needs.
-`type/v1/` is a flat collection of small, reusable value types that have
-no Google-published equivalent.
+`io/altessa/<name>/v1/` holds an RPC contract plus any messages it needs.
+`io/altessa/type/v1/` is a flat collection of small, reusable value types
+that have no Google-published equivalent. The directory path mirrors the
+proto package (`io.altessa.<name>.v1`), enforced by `PACKAGE_DIRECTORY_MATCH`.
+`third_party/` vendors the handful of `google/api` and `google/type`
+protos the schemas import — see [Vendored googleapis](#vendored-googleapis)
+for the rationale.
 
 ## Conventions
 
@@ -47,7 +52,7 @@ These apply uniformly to every schema in this repo.
 ### Design notes (deliberate AIP deviations)
 
 - **`id` vs `name` ([AIP-148](https://google.aip.dev/148)).** Value types
-  in `type/v1` use `string id` for stable identifiers of sub-entries
+  in `io/altessa/type/v1` use `string id` for stable identifiers of sub-entries
   (e.g. one element of a `repeated Contact` list). They are NOT
   resources in [AIP-122](https://google.aip.dev/122)/148 sense — there
   is no per-Contact CRUD RPC namespace, and no `google.api.resource`
@@ -56,22 +61,11 @@ These apply uniformly to every schema in this repo.
   package (`io.altessa.<name>.v1`) and will introduce a `string name`
   field per AIP-148; the original value type keeps its `id` shape
   unchanged.
-- **Pagination `offset` extension ([AIP-158](https://google.aip.dev/158)).**
-  `type/v1/Pagination` follows AIP-158 for `page_size` and `page_token`
-  but additionally carries an `int32 offset` field. AIP-158 discourages
-  offset-based pagination; we keep it because some collections
-  (small, slow-changing, admin-only) are easier to navigate by offset
-  than by minting opaque tokens. `page_token` and `offset` are mutually
-  exclusive.
-- **`SortDirection` zero value ([AIP-126](https://google.aip.dev/126)).**
-  `SORT_DIRECTION_ASC = 0` is the natural default; a separate
-  `_UNSPECIFIED` sentinel would add noise without information. Lint
-  waiver in `buf.yaml`.
 
 ### Backwards-compatibility posture (AIP-180)
 
-Until `vX.0.0` is tagged on `main`, schemas under `type/v1/` and
-`services/<name>/v1/` are mutable and may be reshaped freely. **After
+Until `vX.0.0` is tagged on `main`, schemas under `io/altessa/type/v1/` and
+`io/altessa/<name>/v1/` are mutable and may be reshaped freely. **After
 the first `vX.0.0` tag**, every package is frozen per
 [AIP-180](https://google.aip.dev/180): no field removal, no type
 changes, no renumbering, no movement into/out of `oneof`. Wire-breaking
@@ -81,11 +75,11 @@ evolution happens by adding a `v2` package alongside `v1`.
 
 | Package | Files | Purpose |
 |---|---|---|
-| `io.altessa.badrequest.v1` | [`services/badrequest/v1/`](services/badrequest/v1/) | `BadRequest` / `FieldViolation` error-detail payload for `google.rpc.Status` with `INVALID_ARGUMENT`. |
-| `io.altessa.serviceinfo.v1` | [`services/serviceinfo/v1/`](services/serviceinfo/v1/) | `ServiceInfo` runtime metadata + `ServiceInfoService.Get` RPC for service introspection. |
-| `io.altessa.type.v1` | [`type/v1/`](type/v1/) | General-purpose value types — see [type/v1](#typev1). |
+| `io.altessa.badrequest.v1` | [`io/altessa/badrequest/v1/`](io/altessa/badrequest/v1/) | `BadRequest` / `FieldViolation` error-detail payload for `google.rpc.Status` with `INVALID_ARGUMENT`. |
+| `io.altessa.serviceinfo.v1` | [`io/altessa/serviceinfo/v1/`](io/altessa/serviceinfo/v1/) | `ServiceInfo` runtime metadata + `ServiceInfoService.GetServiceInfo` RPC for service introspection. |
+| `io.altessa.type.v1` | [`io/altessa/type/v1/`](io/altessa/type/v1/) | General-purpose value types — see [io/altessa/type/v1](#ioaltessatypev1). |
 
-## services/badrequest/v1
+## io/altessa/badrequest/v1
 
 A structured error-detail contract for requests that fail input
 validation. It is designed to be carried as the detail payload of a
@@ -118,7 +112,7 @@ import (
     "google.golang.org/grpc/status"
     "google.golang.org/protobuf/proto"
 
-    badrequestv1 "github.com/altessa-s/proto-gen-go/services/badrequest/v1"
+    badrequestv1 "github.com/altessa-s/proto-gen-go/io/altessa/badrequest/v1"
 )
 
 func invalidArgument(violations ...*badrequestv1.FieldViolation) error {
@@ -156,7 +150,7 @@ Unpack the detail from any returned `error`:
 import (
     "google.golang.org/grpc/status"
 
-    badrequestv1 "github.com/altessa-s/proto-gen-go/services/badrequest/v1"
+    badrequestv1 "github.com/altessa-s/proto-gen-go/io/altessa/badrequest/v1"
 )
 
 if st, ok := status.FromError(err); ok {
@@ -171,11 +165,11 @@ if st, ok := status.FromError(err); ok {
 }
 ```
 
-## services/serviceinfo/v1
+## io/altessa/serviceinfo/v1
 
 A uniform runtime-introspection contract every service in the ecosystem
 can expose. A single RPC —
-`ServiceInfoService.Get(google.protobuf.Empty) returns (ServiceInfo)` —
+`ServiceInfoService.GetServiceInfo(GetServiceInfoRequest) returns (GetServiceInfoResponse)` —
 returns identity (`service_name`, `service_description`, `service_id`),
 version (`full_version` plus structured `SemanticVersion`), build
 provenance (`build_time`, `branch`, `commit`, `build_tags`), liveness
@@ -205,7 +199,7 @@ import (
     "google.golang.org/protobuf/types/known/emptypb"
     "google.golang.org/protobuf/types/known/timestamppb"
 
-    serviceinfov1 "github.com/altessa-s/proto-gen-go/services/serviceinfo/v1"
+    serviceinfov1 "github.com/altessa-s/proto-gen-go/io/altessa/serviceinfo/v1"
 )
 
 type Server struct {
@@ -245,33 +239,31 @@ idiomatic way to set proto3 `optional` scalar fields. `timestamppb.New` /
 
 ```bash
 grpcurl -plaintext \
-  -proto services/serviceinfo/v1/serviceinfo_service.proto \
+  -proto io/altessa/serviceinfo/v1/serviceinfo_service.proto \
   -import-path . \
   localhost:9090 \
-  io.altessa.serviceinfo.v1.ServiceInfoService/Get
+  io.altessa.serviceinfo.v1.ServiceInfoService/GetServiceInfo
 ```
 
 If the server registers gRPC reflection, drop `-proto` and `-import-path`
 and call the method directly.
 
-## type/v1
+## io/altessa/type/v1
 
 A flat collection of small, domain-neutral value types reused across
 services.
 
 | Message / Enum | Use it for | Notes |
 |---|---|---|
-| [`Contact`](type/v1/contact.proto) | Generic contact endpoint with a stable `id` and a typed `value` oneof (`email` / `phone` / `social_handle`) | `phone` is a `google.type.PhoneNumber`, so country code and extension are preserved structurally. `id` lets parent messages address a single entry in a `repeated Contact` list for partial updates. |
-| [`DatePeriod`](type/v1/date_period.proto) | Calendar-date range, inclusive on both ends (billing periods, leave windows, …) | Composed of two `google.type.Date`. Use `google.type.Interval` for wall-clock ranges. |
-| [`DocumentRef`](type/v1/document_ref.proto) | User-facing document = file + display title/description | Wraps `FileRef`. |
-| [`FileRef`](type/v1/file_ref.proto) | Reference to a file held in object storage / CDN, with optional metadata | Storage-agnostic — no bucket / backend identifier. |
-| [`Gender`](type/v1/gender.proto) | Minimal biological-sex enum | Intentionally limited to `UNSPECIFIED` / `MALE` / `FEMALE`. Extend in downstream schemas if richer identity is needed. |
-| [`Label`](type/v1/label.proto) | Short text tag with stable id and optional display color | Color is `google.type.Color`. |
-| [`LocationPrivacy`](type/v1/location_privacy.proto) | Privacy / coarsening level applied to a user's geolocation before exposure | Coarsening is the producer's responsibility. |
-| [`MoneyRange`](type/v1/money_range.proto) | Inclusive range between two monetary amounts | Both bounds use `google.type.Money` and must share the same `currency_code`. |
-| [`OrganizationType`](type/v1/organization_type.proto) | Coarse legal form: individual entrepreneur vs registered legal entity | Jurisdiction-specific subtypes belong in domain schemas. |
-| [`Pagination`](type/v1/pagination.proto) | List-request pagination parameters | Field names and types follow [AIP-158](https://google.aip.dev/158): `int32 page_size` + `string page_token`. Adds an `int32 offset` for token-inconvenient collections; `page_token` and `offset` are mutually exclusive. |
-| [`SortDirection`](type/v1/sort_direction.proto) | Ordering direction for list responses | `SORT_DIRECTION_ASC` is the default. |
+| [`Contact`](io/altessa/type/v1/contact.proto) | Generic contact endpoint with a stable `id` and a typed `value` oneof (`email` / `phone` / `social_handle`) | `phone` is a `google.type.PhoneNumber`, so country code and extension are preserved structurally. `id` lets parent messages address a single entry in a `repeated Contact` list for partial updates. |
+| [`DatePeriod`](io/altessa/type/v1/date_period.proto) | Calendar-date range, inclusive on both ends (billing periods, leave windows, …) | Composed of two `google.type.Date`. Use `google.type.Interval` for wall-clock ranges. |
+| [`DocumentRef`](io/altessa/type/v1/document_ref.proto) | User-facing document = file + display title/description | Wraps `FileRef`. |
+| [`FileRef`](io/altessa/type/v1/file_ref.proto) | Reference to a file held in object storage / CDN, with optional metadata | Storage-agnostic — no bucket / backend identifier. |
+| [`Gender`](io/altessa/type/v1/gender.proto) | Minimal biological-sex enum | Intentionally limited to `UNSPECIFIED` / `MALE` / `FEMALE`. Extend in downstream schemas if richer identity is needed. |
+| [`Label`](io/altessa/type/v1/label.proto) | Short text tag with stable id and optional display color | Color is `google.type.Color`. |
+| [`LocationPrivacy`](io/altessa/type/v1/location_privacy.proto) | Privacy / coarsening level applied to a user's geolocation before exposure | Coarsening is the producer's responsibility. |
+| [`MoneyRange`](io/altessa/type/v1/money_range.proto) | Inclusive range between two monetary amounts | Both bounds use `google.type.Money` and must share the same `currency_code`. |
+| [`OrganizationType`](io/altessa/type/v1/organization_type.proto) | Coarse legal form: individual entrepreneur vs registered legal entity | Jurisdiction-specific subtypes belong in domain schemas. |
 
 ### Go example
 
@@ -279,7 +271,7 @@ services.
 import (
     "google.golang.org/genproto/googleapis/type/date"
 
-    typev1 "github.com/altessa-s/proto-gen-go/type/v1"
+    typev1 "github.com/altessa-s/proto-gen-go/io/altessa/type/v1"
 )
 
 period := &typev1.DatePeriod{
@@ -372,16 +364,12 @@ forward to `develop` automatically.
 
 ## Build & lint
 
-This repo's schemas depend on
-[`buf.build/googleapis/googleapis`](https://buf.build/googleapis/googleapis)
-for `google/type/*`, `google/api/field_behavior.proto`, etc. Fetch the
-dependency once before lint or generation:
-
-```
-buf dep update
-```
-
-Then:
+Five common-types files from
+[googleapis](https://github.com/googleapis/googleapis) — `google/api/field_behavior.proto`
+and `google/type/{color,date,money,phone_number}.proto` — are vendored
+under `third_party/` and registered as a second `buf` module in
+`buf.yaml`. No `buf dep update` and no BSR token are required for lint
+or codegen; just run:
 
 ```
 buf lint
@@ -398,7 +386,33 @@ make proto-php-rr
 
 Generated output lands under `gen/<lang>/` (gitignored). `buf lint` and
 `buf breaking` run automatically in CI for every PR touching schema
-files.
+files. The vendored `third_party/` module is excluded from both — its
+content is upstream's responsibility.
+
+### Vendored googleapis
+
+The schemas reference `google.api.field_behavior` and
+`google.type.{Color,Date,Money,PhoneNumber}`. These are not bundled
+with `protoc` (only `google.protobuf.*` well-knowns are), and pulling
+them from `buf.build/googleapis/googleapis` requires a BSR token —
+inconvenient for offline development, CI without a BSR secret, and
+language toolchains (PHP, Swift) that don't speak BSR fluently.
+
+Vendoring them under `third_party/google/` keeps codegen hermetic for
+all six languages and removes BSR from the lint/gen critical path.
+Refresh by copying from the buf cache after any `buf dep update` run:
+
+```
+DIGEST=$(ls -1 ~/.cache/buf/v3/modules/b5/buf.build/googleapis/googleapis | tail -1)
+SRC=~/.cache/buf/v3/modules/b5/buf.build/googleapis/googleapis/$DIGEST/files
+cp $SRC/google/api/field_behavior.proto       third_party/google/api/
+cp $SRC/google/type/{color,date,money,phone_number}.proto third_party/google/type/
+```
+
+If you add a new `google/*` import in a schema, vendor the new file
+the same way and add it to the Swift template's `inputs:` block (Swift
+needs each googleapis file as a primary input — see comment in
+`buf.gen.swift.yaml`).
 
 ## License
 
